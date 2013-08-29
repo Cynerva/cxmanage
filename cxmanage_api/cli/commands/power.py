@@ -1,3 +1,6 @@
+"""Calxeda: power.py """
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -30,111 +33,84 @@
 
 from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
 
-from cxmanage_api.ubootenv import UbootEnv, validate_boot_args, \
-        validate_pxe_interface
 
-
-def config_reset_command(args):
-    """reset to factory default settings"""
-    tftp = get_tftp(args)
-    nodes = get_nodes(args, tftp, verify_prompt=True)
-
-    if not args.quiet:
-        print "Sending config reset command..."
-
-    results, errors = run_command(args, nodes, "config_reset")
-
-    if not args.quiet and not errors:
-        print "Command completed successfully.\n"
-
-    return len(errors) > 0
-
-
-def config_boot_command(args):
-    """set A9 boot order"""
-    if args.boot_order == ['status']:
-        return config_boot_status_command(args)
-
-    validate_boot_args(args.boot_order)
-
+def power_command(args):
+    """change the power state of a cluster or host"""
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Setting boot order..."
+        print 'Sending power %s command...' % args.power_mode
 
-    results, errors = run_command(args, nodes, "set_boot_order",
-            args.boot_order)
+    _, errors = run_command(args, nodes, 'set_power', args.power_mode)
 
     if not args.quiet and not errors:
-        print "Command completed successfully.\n"
+        print 'Command completed successfully.\n'
 
     return len(errors) > 0
 
 
-def config_boot_status_command(args):
+def power_status_command(args):
+    """Executes the power status command with args."""
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Getting boot order..."
-    results, errors = run_command(args, nodes, "get_boot_order")
+        print 'Getting power status...'
+    results, errors = run_command(args, nodes, 'get_power')
 
     # Print results
     if results:
         node_strings = get_node_strings(args, results, justify=True)
-        print "Boot order"
+        print 'Power status'
         for node in nodes:
             if node in results:
-                print "%s: %s" % (node_strings[node], ",".join(results[node]))
+                result = 'on' if results[node] else 'off'
+                print '%s: %s' % (node_strings[node], result)
         print
 
     if not args.quiet and errors:
-        print "Some errors occured during the command.\n"
+        print 'Some errors occured during the command.\n'
 
     return len(errors) > 0
 
 
-def config_pxe_command(args):
-    """set the PXE boot interface"""
-    if args.interface == "status":
-        return config_pxe_status_command(args)
-
-    validate_pxe_interface(args.interface)
-
+def power_policy_command(args):
+    """Executes power policy command with args."""
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Setting pxe interface..."
+        print 'Setting power policy to %s...' % args.policy
 
-    results, errors = run_command(args, nodes, "set_pxe_interface",
-            args.interface)
+    _, errors = run_command(args, nodes, 'set_power_policy',
+            args.policy)
 
     if not args.quiet and not errors:
-        print "Command completed successfully.\n"
+        print 'Command completed successfully.\n'
 
     return len(errors) > 0
 
 
-def config_pxe_status_command(args):
+def power_policy_status_command(args):
+    """Executes the power policy status command with args."""
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Getting pxe interface..."
-    results, errors = run_command(args, nodes, "get_pxe_interface")
+        print 'Getting power policy status...'
+    results, errors = run_command(args, nodes, 'get_power_policy')
 
     # Print results
     if results:
         node_strings = get_node_strings(args, results, justify=True)
-        print "PXE interface"
+        print 'Power policy status'
         for node in nodes:
             if node in results:
-                print "%s: %s" % (node_strings[node], results[node])
+                print '%s: %s' % (node_strings[node], results[node])
         print
 
     if not args.quiet and errors:
-        print "Some errors occured during the command.\n"
+        print 'Some errors occured during the command.\n'
 
     return len(errors) > 0

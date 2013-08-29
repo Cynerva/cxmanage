@@ -1,3 +1,7 @@
+# pylint: disable=C0302
+"""Calxeda: node.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -28,11 +32,9 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-
 import os
 import re
 import time
-import shutil
 import tempfile
 import subprocess
 
@@ -50,9 +52,10 @@ from cxmanage_api.ip_retriever import IPRetriever as IPRETRIEVER
 from cxmanage_api.cx_exceptions import TimeoutError, NoSensorError, \
         SocmanVersionError, FirmwareConfigError, PriorityIncrementError, \
         NoPartitionError, TransferFailure, ImageSizeError, \
-        PartitionInUseError, UbootenvError
+        PartitionInUseError, UbootenvError, NoFRUVersionError
 
 
+# pylint: disable=R0902, R0904
 class Node(object):
     """A node is a single instance of an ECME.
 
@@ -78,7 +81,7 @@ class Node(object):
     :type ubootenv: `UbootEnv <ubootenv.html>`_
 
     """
-
+    # pylint: disable=R0913
     def __init__(self, ip_address, username="admin", password="admin",
                   tftp=None, ecme_tftp_port=5001, verbose=False, bmc=None,
                   image=None, ubootenv=None, ipretriever=None):
@@ -186,7 +189,8 @@ class Node(object):
         :param macaddr: MAC address to add
         :type macaddr: string
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         self.bmc.fabric_add_macaddr(iface=iface, macaddr=macaddr)
@@ -201,7 +205,8 @@ class Node(object):
         :param macaddr: MAC address to remove
         :type macaddr: string
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         self.bmc.fabric_rm_macaddr(iface=iface, macaddr=macaddr)
@@ -222,7 +227,7 @@ class Node(object):
         """
         return self.bmc.get_chassis_status().power_on
 
-    def set_power(self, mode):
+    def set_power(self, mode, ignore_existing_state=False):
         """Send an IPMI power command to this target.
 
         >>> # To turn the power 'off'
@@ -236,8 +241,17 @@ class Node(object):
 
         :param mode: Mode to set the power state to. ('on'/'off')
         :type mode: string
+        :param ignore_existing_state: Flag that allows the caller to only try
+                                      to turn on or off the node if it is not
+                                      turned on or off, respectively.
+        :type ignore_existing_state: boolean
 
         """
+        if ignore_existing_state:
+            if self.get_power() and mode == "on":
+                return
+            if not self.get_power() and mode == "off":
+                return
         self.bmc.set_chassis_power(mode=mode)
 
     def get_power_policy(self):
@@ -249,7 +263,8 @@ class Node(object):
         :return: The Nodes current power policy.
         :rtype: string
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         return self.bmc.get_chassis_status().power_restore_policy
@@ -305,9 +320,12 @@ class Node(object):
 
         >>> node.get_sel()
         ['1 | 06/21/2013 | 16:13:31 | System Event #0xf4 |',
-         '0 | 06/27/2013 | 20:25:18 | System Boot Initiated #0xf1 | Initiated by power up | Asserted',
-         '1 | 06/27/2013 | 20:25:35 | Watchdog 2 #0xfd | Hard reset | Asserted',
-         '2 | 06/27/2013 | 20:25:18 | System Boot Initiated #0xf1 | Initiated by power up | Asserted',
+         '0 | 06/27/2013 | 20:25:18 | System Boot Initiated #0xf1 | \
+Initiated by power up | Asserted',
+         '1 | 06/27/2013 | 20:25:35 | Watchdog 2 #0xfd | Hard reset | \
+Asserted',
+         '2 | 06/27/2013 | 20:25:18 | System Boot Initiated #0xf1 | \
+Initiated by power up | Asserted',
          '3 | 06/27/2013 | 21:01:13 | System Event #0xf4 |',
          ...
         ]
@@ -518,7 +536,8 @@ class Node(object):
         :return: Returns a list of FWInfo objects for each
         :rtype: list
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         fwinfo = [x for x in self.bmc.get_firmware_info()
@@ -568,7 +587,8 @@ class Node(object):
         :return: Returns a list of FWInfo objects for each
         :rtype: list
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         return [vars(info) for info in self.get_firmware_info()]
@@ -590,10 +610,12 @@ class Node(object):
         try:
             self._check_firmware(package, partition_arg, priority)
             return True
-        except (SocmanVersionError, FirmwareConfigError, PriorityIncrementError,
-                NoPartitionError, ImageSizeError, PartitionInUseError):
+        except (SocmanVersionError, FirmwareConfigError,
+            PriorityIncrementError, NoPartitionError, ImageSizeError,
+            PartitionInUseError):
             return False
 
+    # pylint: disable=R0914, R0912, R0915
     def update_firmware(self, package, partition_arg="INACTIVE",
                           priority=None):
         """ Update firmware on this target.
@@ -728,8 +750,9 @@ class Node(object):
                     )
 
                     filename = temp_file()
-                    with open(filename, "wb") as f:
-                        f.write(ubootenv.get_contents())
+                    with open(filename, "wb") as file_:
+                        file_.write(ubootenv.get_contents())
+
                     ubootenv_image = self.image(filename, image.type, False,
                                            image.daddr, image.skip_crc32,
                                            image.version)
@@ -821,11 +844,12 @@ class Node(object):
 
         >>> node.config_reset()
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
 
         """
         # Reset CDB
-        result = self.bmc.reset_firmware()
+        self.bmc.reset_firmware()
 
         # Reset ubootenv
         fwinfo = self.get_firmware_info()
@@ -860,8 +884,8 @@ class Node(object):
         priority = max(int(x.priority, 16) for x in [first_part, active_part])
 
         filename = temp_file()
-        with open(filename, "wb") as f:
-            f.write(ubootenv.get_contents())
+        with open(filename, "wb") as file_:
+            file_.write(ubootenv.get_contents())
 
         ubootenv_image = self.image(filename, image.type, False, image.daddr,
                                     image.skip_crc32, image.version)
@@ -896,8 +920,8 @@ class Node(object):
         priority = max(int(x.priority, 16) for x in [first_part, active_part])
 
         filename = temp_file()
-        with open(filename, "w") as f:
-            f.write(ubootenv.get_contents())
+        with open(filename, "w") as file_:
+            file_.write(ubootenv.get_contents())
 
         ubootenv_image = self.image(filename, image.type, False, image.daddr,
                                     image.skip_crc32, image.version)
@@ -925,20 +949,38 @@ class Node(object):
         :returns: The results of IPMI info basic command.
         :rtype: pyipmi.info.InfoBasicResult
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
         :raises Exception: If there are errors within the command response.
 
         """
         result = self.bmc.get_info_basic()
-
         fwinfo = self.get_firmware_info()
-        components = [("cdb_version", "CDB"),
-                      ("stage2_version", "S2_ELF"),
-                      ("bootlog_version", "BOOT_LOG"),
-                      ("a9boot_version", "A9_EXEC"),
-                      ("uboot_version", "A9_UBOOT"),
-                      ("ubootenv_version", "UBOOTENV"),
-                      ("dtb_version", "DTB")]
+        fw_version = result.firmware_version
+
+        # components maps variables to firmware partition types
+        components = [
+            ("cdb_version", "CDB"),
+            ("stage2_version", "S2_ELF"),
+            ("bootlog_version", "BOOT_LOG")
+        ]
+        # Use firmware version to determine the chip type and name
+        # In the future, we may want to determine the chip name some other way
+        if fw_version.startswith("ECX-1000"):
+            components.append(("a9boot_version", "A9_EXEC"))
+            setattr(result, "chip_name", "Highbank")
+        elif fw_version.startswith("ECX-2000"):
+            # The BMC (and fwinfo) still reference the A15 as an A9
+            components.append(("a15boot_version", "A9_EXEC"))
+            setattr(result, "chip_name", "Midway")
+        else:
+            # Default to A9 and unknown name
+            components.append(("a9boot_version", "A9_EXEC"))
+            setattr(result, "chip_name", "Unknown")
+        components.append(("uboot_version", "A9_UBOOT"))
+        components.append(("ubootenv_version", "UBOOTENV"))
+        components.append(("dtb_version", "DTB"))
+
         for var, ptype in components:
             try:
                 partition = self._get_partition(fwinfo, ptype, "ACTIVE")
@@ -984,7 +1026,8 @@ class Node(object):
         :returns: The results of IPMI info basic command.
         :rtype: dictionary
 
-        :raises IpmiError: If errors in the command occur with BMC communication.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
         :raises Exception: If there are errors within the command response.
 
         """
@@ -1146,8 +1189,8 @@ class Node(object):
             node_id = int(line.replace('Node ', '')[0])
             ul_info = line.replace('Node %s:' % node_id, '').strip().split(',')
             node_data = {}
-            for ul in ul_info:
-                data = tuple(ul.split())
+            for ul_ in ul_info:
+                data = tuple(ul_.split())
                 node_data[data[0]] = int(data[1])
             results[node_id] = node_data
 
@@ -1310,13 +1353,16 @@ class Node(object):
                 dchrt_entries = {}
                 dchrt_entries['shortest'] = (neighbor, hops)
                 try:
-                    other_hops_neighbors = elements[12].strip().split('[,\s]+')
+                    other_hops_neighbors = elements[12].strip().split(
+                        r'[,\s]+'
+                    )
                     hops = []
                     for entry in other_hops_neighbors:
                         pair = entry.strip().split('/')
                         hops.append((int(pair[1]), int(pair[0])))
                     dchrt_entries['others'] = hops
-                except:
+
+                except Exception:  # pylint: disable=W0703
                     pass
 
                 results[target] = dchrt_entries
@@ -1348,8 +1394,10 @@ class Node(object):
 
         :return: The IP address of the server.
         :rtype: string
-        :raises IpmiError: If errors in the command occur with BMC communication.
-        :raises IPDiscoveryError: If the server is off, or the IP can't be obtained.
+        :raises IpmiError: If errors in the command occur with BMC \
+communication.
+        :raises IPDiscoveryError: If the server is off, or the IP can't be \
+obtained.
 
         """
         verbosity = 2 if self.verbose else 0
@@ -1419,6 +1467,82 @@ class Node(object):
             iface=iface
         )
 
+    def get_uplink_speed(self):
+        """Get the uplink speed of this node.
+
+        >>> node.get_uplink_speed()
+        1
+
+        :return: The uplink speed of this node, in Gbps
+        :rtype: integer
+
+        """
+        return self.bmc.fabric_get_uplink_speed()
+
+    def get_uplink_info(self):
+        """Get the uplink information for this node.
+
+        >>> node.get_uplink_info()
+        'Node 0: eth0 0, eth1 0, mgmt 0'
+
+        :return: The uplink information for this node
+        :rtype: string
+
+        """
+        return self.bmc.fabric_get_uplink_info().strip()
+
+    def get_node_fru_version(self):
+        """Get the node FRU version.
+
+        >>> node.get_node_fru_version
+        'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c'
+
+        :return: The node FRU version of this node
+        :rtype: string
+
+        This is essentially the equivalent of ipmitool FRU read 81 filename
+        and reading only the version from that file.
+        The in-file offset for the node FRU version is 516, and the
+        length of the version string is 40 bytes.
+
+        """
+        version = self._read_fru(81, offset=516, bytes_to_read=40)
+        # If there is an error reading the FRU, every byte could be x00
+        if version == "\x00"*len(version):
+            raise NoFRUVersionError("No node FRU detected")
+
+        # If the version string is less than 40 bytes long, remove the x00's
+        version = version.replace("\x00", "")
+
+        return version
+
+    def get_slot_fru_version(self):
+        """Get the slot FRU version.
+
+        >>> node.get_slot_fru_version
+        'Unknown'
+
+        :return: The slot FRU version of this node
+        :rtype: string
+
+        This is essentially the equivalent of ipmitool FRU read 82 filename
+        and reading only the version from that file.
+        The in-file offset for the node FRU version is 516, and the
+        length of the version string is 40 bytes.
+
+        Note that some system boards do not have slot FRUs, and are
+        therefore expected to raise an exception.
+
+        """
+        version = self._read_fru(82, offset=516, bytes_to_read=40)
+        # If there is an error reading the FRU, every byte could be x00
+        if version == "\x00"*len(version):
+            raise NoFRUVersionError("No slot FRU detected.")
+
+        # If the version string is less than 40 bytes long, remove the x00's
+        version = version.replace("\x00", "")
+
+        return version
 
     def _run_fabric_command(self, function_name, **kwargs):
         """Handles the basics of sending a node a command for fabric data."""
@@ -1428,7 +1552,7 @@ class Node(object):
             getattr(self.bmc, function_name)(filename=basename, **kwargs)
             self.ecme_tftp.get_file(basename, filename)
 
-        except (IpmiError, TftpException) as e:
+        except (IpmiError, TftpException):
             getattr(self.bmc, function_name)(
                 filename=basename,
                 tftp_addr=self.tftp_address,
@@ -1448,7 +1572,8 @@ class Node(object):
 
         return filename
 
-    def _get_partition(self, fwinfo, image_type, partition_arg):
+    @staticmethod
+    def _get_partition(fwinfo, image_type, partition_arg):
         """Get a partition for this image type based on the argument."""
         # Filter partitions for this type
         partitions = [x for x in fwinfo if
@@ -1507,9 +1632,13 @@ class Node(object):
         filename = image.render_to_simg(priority, daddr)
         basename = os.path.basename(filename)
 
-        for x in xrange(2):
+        for _ in xrange(2):
             try:
-                self.bmc.register_firmware_write(basename, partition_id, image.type)
+                self.bmc.register_firmware_write(
+                    basename,
+                    partition_id,
+                    image.type
+                )
                 self.ecme_tftp.put_file(filename, basename)
                 break
             except (IpmiError, TftpException):
@@ -1532,9 +1661,13 @@ class Node(object):
         partition_id = int(partition.partition)
         image_type = partition.type.split()[1][1:-1]
 
-        for x in xrange(2):
+        for _ in xrange(2):
             try:
-                self.bmc.register_firmware_read(basename, partition_id, image_type)
+                self.bmc.register_firmware_read(
+                    basename,
+                    partition_id,
+                    image_type
+                )
                 self.ecme_tftp.get_file(basename, filename)
                 break
             except (IpmiError, TftpException):
@@ -1595,13 +1728,9 @@ class Node(object):
                         % (required_version, ecme_version))
 
         # Check slot0 vs. slot2
-        # TODO: remove this check
         if (package.config and info.firmware_version != "Unknown" and
-                len(info.firmware_version) < 32):
-            if "slot2" in info.firmware_version:
-                firmware_config = "slot2"
-            else:
-                firmware_config = "default"
+            len(info.firmware_version) < 32):
+            firmware_config = "default"
 
             if (package.config != firmware_config):
                 raise FirmwareConfigError(
@@ -1631,13 +1760,16 @@ class Node(object):
                 if (image.type in ["CDB", "BOOT_LOG"] and
                         partition.in_use == "1"):
                     raise PartitionInUseError(
-                            "Can't upload to a CDB/BOOT_LOG partition that's in use")
+                        "Can't upload to a CDB/BOOT_LOG partition " +
+                        "that's in use"
+                    )
 
         # Try a TFTP download. Would try an upload too, but nowhere to put it.
         partition = self._get_partition(fwinfo, "SOC_ELF", "FIRST")
         self._download_image(partition)
 
-    def _get_next_priority(self, fwinfo, package):
+    @staticmethod
+    def _get_next_priority(fwinfo, package):
         """ Get the next priority """
         priority = None
         image_types = [x.type for x in package.images]
@@ -1650,5 +1782,17 @@ class Node(object):
             raise PriorityIncrementError(
                             "Unable to increment SIMG priority, too high")
         return priority
+
+    def _read_fru(self, fru_number, offset=0, bytes_to_read= -1):
+        """Read from node's fru starting at offset.
+        This is equivalent to the ipmitool fru read command.
+
+        """
+        # Use a temporary file to store the FRU image
+        with tempfile.NamedTemporaryFile(delete=True) as hexfile:
+            self.bmc.fru_read(fru_number, hexfile.name)
+            hexfile.seek(offset)
+            return(hexfile.read(bytes_to_read))
+
 
 # End of file: ./node.py

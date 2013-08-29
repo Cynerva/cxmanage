@@ -1,3 +1,6 @@
+"""Calxeda: __init__.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -27,21 +30,3 @@
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
-
-from cxmanage import get_tftp, get_nodes, run_command
-
-
-def mcreset_command(args):
-    """reset the management controllers of a cluster or host"""
-    tftp = get_tftp(args)
-    nodes = get_nodes(args, tftp)
-
-    if not args.quiet:
-        print 'Sending MC reset command...'
-
-    results, errors = run_command(args, nodes, 'mc_reset')
-
-    if not args.quiet and not errors:
-        print 'Command completed successfully.\n'
-
-    return len(errors) > 0

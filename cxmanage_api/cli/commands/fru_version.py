@@ -1,4 +1,7 @@
-# Copyright (c) 2012, Calxeda Inc.
+"""Calxeda: fru_version.py """
+
+
+# Copyright (c) 2013, Calxeda Inc.
 #
 # All rights reserved.
 #
@@ -28,29 +31,41 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
+
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, run_command
 
 
-def ipdiscover_command(args):
-    """discover server IP addresses"""
+def node_fru_version_command(args):
+    """Get the node FRU version for each node. """
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
+    results, errors = run_command(args, nodes, 'get_node_fru_version')
 
-    if not args.quiet:
-        print 'Getting server-side IP addresses...'
-
-    results, errors = run_command(args, nodes, 'get_server_ip', args.interface,
-            args.ipv6, args.server_user, args.server_password, args.aggressive)
-
+    # Print results if we were successful
     if results:
         node_strings = get_node_strings(args, results, justify=True)
-        print 'IP addresses (ECME, Server)'
         for node in nodes:
-            if node in results:
-                print '%s: %s' % (node_strings[node], results[node])
-        print
+            print("%s: %s" % (node_strings[node], results[node]))
+
+    print("")  # For readability
 
     if not args.quiet and errors:
-        print 'Some errors occurred during the command.'
+        print('Some errors occured during the command.\n')
 
-    return len(errors) > 0
+
+def slot_fru_version_command(args):
+    """Get the slot FRU version for each node. """
+    tftp = get_tftp(args)
+    nodes = get_nodes(args, tftp)
+    results, errors = run_command(args, nodes, 'get_slot_fru_version')
+
+    # Print results if we were successful
+    if results:
+        node_strings = get_node_strings(args, results, justify=True)
+        for node in nodes:
+            print("%s: %s" % (node_strings[node], results[node]))
+
+    print("")  # For readability
+
+    if not args.quiet and errors:
+        print('Some errors occured during the command.\n')

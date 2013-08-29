@@ -1,3 +1,5 @@
+"""Calxeda: fabric_test.py """
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -44,12 +46,15 @@ from pyipmi import make_bmc
 NUM_NODES = 128
 ADDRESSES = ["192.168.100.%i" % x for x in range(1, NUM_NODES + 1)]
 
+
+# pylint: disable=R0904
 class FabricTest(unittest.TestCase):
     """ Test the various Fabric commands """
     def setUp(self):
         # Set up the controller and add targets
         self.fabric = Fabric("192.168.100.1", node=DummyNode)
-        self.nodes = [DummyNode(x) for x in ADDRESSES]
+        self.nodes = [DummyNode(i) for i in ADDRESSES]
+        # pylint: disable=W0212
         self.fabric._nodes = dict((i, self.nodes[i])
                 for i in xrange(NUM_NODES))
 
@@ -75,11 +80,16 @@ class FabricTest(unittest.TestCase):
             self.assertEqual(node.executed, [])
 
     def test_get_uplink_info(self):
-        """ Test get_mac_addresses command """
+        """ Test get_uplink_info command """
         self.fabric.get_uplink_info()
-        self.assertEqual(self.nodes[0].executed, ["get_fabric_uplink_info"])
-        for node in self.nodes[1:]:
-            self.assertEqual(node.executed, [])
+        for node in self.nodes:
+            self.assertEqual(node.executed, ["get_uplink_info"])
+
+    def test_get_uplink_speed(self):
+        """ Test get_uplink_speed command """
+        self.fabric.get_uplink_speed()
+        for node in self.nodes:
+            self.assertEqual(node.executed, ["get_uplink_speed"])
 
     def test_get_uplink(self):
         """ Test get_uplink command """
@@ -169,7 +179,9 @@ class FabricTest(unittest.TestCase):
         ipmitool_args = "power status"
         self.fabric.ipmitool_command(ipmitool_args)
         for node in self.nodes:
-            self.assertEqual(node.executed, [("ipmitool_command", ipmitool_args)])
+            self.assertEqual(
+                node.executed, [("ipmitool_command", ipmitool_args)]
+            )
 
     def test_get_server_ip(self):
         """ Test get_server_ip command """
@@ -181,8 +193,11 @@ class FabricTest(unittest.TestCase):
 
     def test_failed_command(self):
         """ Test a failed command """
-        fail_nodes = [DummyFailNode(x) for x in ADDRESSES]
-        self.fabric._nodes = dict((i, fail_nodes[i]) for i in xrange(NUM_NODES))
+        fail_nodes = [DummyFailNode(i) for i in ADDRESSES]
+        # pylint: disable=W0212
+        self.fabric._nodes = dict(
+            (i, fail_nodes[i]) for i in xrange(NUM_NODES)
+        )
         try:
             self.fabric.get_power()
             self.fail()
@@ -218,7 +233,7 @@ class FabricTest(unittest.TestCase):
         # it's there to make sure the ipsrc_mode value gets passed to the bmc.
         self.assertEqual(bmc.fabric_ipsrc, ipsrc)
 
-    def test_apply_factory_default_config(self):
+    def test_apply_fdc(self):
         """Test the apply_factory_default_config method"""
 
         self.fabric.apply_factory_default_config()
@@ -286,26 +301,26 @@ class FabricTest(unittest.TestCase):
     def test_get_link_stats(self):
         """Test the get_link_stats() method."""
         for i in range(0, 5):
-            stats = self.fabric.get_link_stats(i)
-            for nn, node in self.fabric.nodes.items():
+            self.fabric.get_link_stats(i)
+            for node in self.fabric.nodes.values():
                 self.assertIn(('get_link_stats', i), node.executed)
 
     def test_get_linkmap(self):
         """Test the get_linkmap method"""
-        maps = self.fabric.get_linkmap()
-        for nn, node in self.fabric.nodes.items():
+        self.fabric.get_linkmap()
+        for node in self.fabric.nodes.values():
             self.assertIn('get_linkmap', node.executed)
 
     def test_get_routing_table(self):
         """Test the get_routing_table method"""
-        maps = self.fabric.get_routing_table()
-        for nn, node in self.fabric.nodes.items():
+        self.fabric.get_routing_table()
+        for node in self.fabric.nodes.values():
             self.assertIn('get_routing_table', node.executed)
-            
+
     def test_get_depth_chart(self):
         """Test the depth_chart method"""
-        maps = self.fabric.get_depth_chart()
-        for nn, node in self.fabric.nodes.items():
+        self.fabric.get_depth_chart()
+        for node in self.fabric.nodes.values():
             self.assertIn('get_depth_chart', node.executed)
 
     def test_get_link_users_factor(self):
@@ -407,10 +422,22 @@ class FabricTest(unittest.TestCase):
             else:
                 self.assertEqual(node.bmc.executed, [])
 
+    def test_get_node_fru_version(self):
+        """ Test the get_node_fru_version method """
+        self.fabric.get_node_fru_version()
+        for node in self.nodes:
+            self.assertEqual(node.executed, ["get_node_fru_version"])
+
+    def test_get_slot_fru_version(self):
+        """ Test the get_slot_fru_version method """
+        self.fabric.get_slot_fru_version()
+        for slot in self.nodes:
+            self.assertEqual(slot.executed, ["get_slot_fru_version"])
+
     def test_composite_bmc(self):
         """ Test the CompositeBMC member """
         with self.assertRaises(AttributeError):
-            self.fabric.cbmc.fake_method
+            self.fabric.cbmc.fake_method()
 
         self.fabric.cbmc.set_chassis_power("off")
         results = self.fabric.cbmc.get_chassis_status()
@@ -428,43 +455,55 @@ class FabricTest(unittest.TestCase):
 
 class DummyNode(object):
     """ Dummy node for the nodemanager tests """
+
+    # pylint: disable=W0613
     def __init__(self, ip_address, username="admin", password="admin",
             tftp=None, *args, **kwargs):
         self.executed = []
+        self.power_state = False
         self.ip_address = ip_address
         self.tftp = tftp
         self.bmc = make_bmc(DummyBMC, hostname=ip_address, username=username,
                             password=password, verbose=False)
 
     def get_power(self):
+        """Simulate get_power(). """
         self.executed.append("get_power")
-        return False
+        return self.power_state
 
     def set_power(self, mode):
+        """Simulate set_power(). """
         self.executed.append(("set_power", mode))
 
     def get_power_policy(self):
+        """Simulate get_power_policy(). """
         self.executed.append("get_power_policy")
         return "always-off"
 
     def set_power_policy(self, mode):
+        """Simulate set_power_policy(). """
         self.executed.append(("set_power_policy", mode))
 
     def mc_reset(self):
+        """Simulate mc_reset(). """
         self.executed.append("mc_reset")
 
     def get_firmware_info(self):
+        """Simulate get_firmware_info(). """
         self.executed.append("get_firmware_info")
 
     def is_updatable(self, package, partition_arg="INACTIVE", priority=None):
+        """Simulate is_updateable(). """
         self.executed.append(("is_updatable", package))
 
     def update_firmware(self, package, partition_arg="INACTIVE",
             priority=None):
+        """Simulate update_firmware(). """
         self.executed.append(("update_firmware", package))
         time.sleep(random.randint(0, 2))
 
     def get_sensors(self, name=""):
+        """Simulate get_sensors(). """
         self.executed.append("get_sensors")
         power_value = "%f (+/- 0) Watts" % random.uniform(0, 10)
         temp_value = "%f (+/- 0) degrees C" % random.uniform(30, 50)
@@ -472,29 +511,37 @@ class DummyNode(object):
                 TestSensor("Node Power", power_value),
                 TestSensor("Board Temp", temp_value)
         ]
-        return [x for x in sensors if name.lower() in x.sensor_name.lower()]
+        return [s for s in sensors if name.lower() in s.sensor_name.lower()]
 
     def config_reset(self):
+        """Simulate config_reset(). """
         self.executed.append("config_reset")
 
     def set_boot_order(self, boot_args):
+        """Simulate set_boot_order()."""
         self.executed.append(("set_boot_order", boot_args))
 
     def get_boot_order(self):
+        """Simulate get_boot_order(). """
         self.executed.append("get_boot_order")
         return ["disk", "pxe"]
 
     def set_pxe_interface(self, interface):
+        """Simulate set_pxe_interface(). """
         self.executed.append(("set_pxe_interface", interface))
 
     def get_pxe_interface(self):
+        """Simulate get_pxe_interface(). """
         self.executed.append("get_pxe_interface")
         return "eth0"
 
     def get_versions(self):
+        """Simulate get_versions(). """
         self.executed.append("get_versions")
 
-        class Result:
+        # pylint: disable=R0902, R0903
+        class Result(object):
+            """Result Class. """
             def __init__(self):
                 self.header = "Calxeda SoC (0x0096CD)"
                 self.hardware_version = "TestBoard X00"
@@ -503,13 +550,16 @@ class DummyNode(object):
                 self.ecme_timestamp = "0"
                 self.a9boot_version = "v0.0.0"
                 self.uboot_version = "v0.0.0"
+                self.chip_name = "Unknown"
         return Result()
 
     def ipmitool_command(self, ipmitool_args):
+        """Simulate ipmitool_command(). """
         self.executed.append(("ipmitool_command", ipmitool_args))
         return "Dummy output"
 
     def get_ubootenv(self):
+        """Simulate get_ubootenv(). """
         self.executed.append("get_ubootenv")
 
         ubootenv = UbootEnv()
@@ -517,15 +567,21 @@ class DummyNode(object):
         ubootenv.variables["bootcmd_default"] = "run bootcmd_sata"
         return ubootenv
 
-    def get_fabric_ipinfo(self):
+    @staticmethod
+    def get_fabric_ipinfo():
+        """Simulates get_fabric_ipinfo(). """
         return {}
 
-    def get_server_ip(self, interface, ipv6, user, password, aggressive):
+    # pylint: disable=R0913
+    def get_server_ip(self, interface=None, ipv6=False, user="user1",
+            password="1Password", aggressive=False):
+        """Simulate get_server_ip(). """
         self.executed.append(("get_server_ip", interface, ipv6, user, password,
                 aggressive))
         return "192.168.200.1"
 
     def get_fabric_macaddrs(self):
+        """Simulate get_fabric_macaddrs(). """
         self.executed.append("get_fabric_macaddrs")
         result = {}
         for node in range(NUM_NODES):
@@ -536,13 +592,25 @@ class DummyNode(object):
         return result
 
     def get_fabric_uplink_info(self):
+        """Simulate get_fabric_uplink_info(). """
         self.executed.append('get_fabric_uplink_info')
         results = {}
-        for n in range(1, NUM_NODES):
-            results[n] = {'eth0': 0, 'eth1': 0, 'mgmt': 0}
+        for nid in range(1, NUM_NODES):
+            results[nid] = {'eth0': 0, 'eth1': 0, 'mgmt': 0}
         return results
 
+    def get_uplink_info(self):
+        """Simulate get_uplink_info(). """
+        self.executed.append('get_uplink_info')
+        return 'Node 0: eth0 0, eth1 0, mgmt 0'
+
+    def get_uplink_speed(self):
+        """Simulate get_uplink_speed(). """
+        self.executed.append('get_uplink_speed')
+        return 1
+
     def get_link_stats(self, link=0):
+        """Simulate get_link_stats(). """
         self.executed.append(('get_link_stats', link))
         return {
                  'FS_LC%s_BYTE_CNT_0' % link: '0x0',
@@ -567,50 +635,71 @@ class DummyNode(object):
         }
 
     def get_linkmap(self):
+        """Simulate get_linkmap(). """
         self.executed.append('get_linkmap')
         results = {}
-        for n in range(0, NUM_NODES):
-            results[n] = {n: {1: 2, 3: 1, 4: 3}}
+        for nid in range(0, NUM_NODES):
+            results[nid] = {nid: {1: 2, 3: 1, 4: 3}}
         return results
 
     def get_routing_table(self):
+        """Simulate get_routing_table(). """
         self.executed.append('get_routing_table')
         results = {}
-        for n in range(0, NUM_NODES):
-            results[n] = {n: {1: [0, 0, 0, 3, 0],
+        for nid in range(0, NUM_NODES):
+            results[nid] = {nid: {1: [0, 0, 0, 3, 0],
                               2: [0, 3, 0, 0, 2],
                               3: [0, 2, 0, 0, 3]}}
         return results
 
     def get_depth_chart(self):
+        """Simulate get_depth_chart(). """
         self.executed.append('get_depth_chart')
         results = {}
-        for n in range(0, NUM_NODES):
-            results[n] = {n: {1: {'shortest': (0, 0)},
+        for nid in range(0, NUM_NODES):
+            results[nid] = {nid: {1: {'shortest': (0, 0)},
                               2: {'hops': [(3, 1)], 'shortest': (0, 0)},
                               3: {'hops': [(2, 1)], 'shortest': (0, 0)}}}
         return results
 
     def get_uplink(self, iface):
+        """Simulate get_uplink(). """
         self.executed.append(('get_uplink', iface))
         return 0
 
     def set_uplink(self, uplink, iface):
+        """Simulate set_uplink(). """
         self.executed.append(('set_uplink', uplink, iface))
+
+    def get_node_fru_version(self):
+        """Simulate get_node_fru_version(). """
+        self.executed.append("get_node_fru_version")
+        return "0.0"
+
+    def get_slot_fru_version(self):
+        """Simulate get_slot_fru_version(). """
+        self.executed.append("get_slot_fru_version")
+        return "0.0"
 
 
 class DummyFailNode(DummyNode):
     """ Dummy node that should fail on some commands """
 
     class DummyFailError(Exception):
+        """Dummy Fail Error class."""
         pass
 
     def get_power(self):
+        """Simulate get_power(). """
         self.executed.append("get_power")
         raise DummyFailNode.DummyFailError
 
-class DummyImage:
+# pylint: disable=R0903
+class DummyImage(object):
+    """Dummy Image class."""
+
     def __init__(self, filename, image_type, *args):
         self.filename = filename
         self.type = image_type
+        self.args = args
 

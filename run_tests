@@ -32,6 +32,7 @@
 
 
 import unittest
+import xmlrunner
 
 from cxmanage_test import tftp_test, image_test, node_test, fabric_test, \
         tasks_test
@@ -43,7 +44,7 @@ def main():
     suite = unittest.TestSuite()
     for module in test_modules:
         suite.addTest(loader.loadTestsFromModule(module))
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    xmlrunner.XMLTestRunner(verbosity=2).run(suite)
 
 if __name__ == "__main__":
     main()

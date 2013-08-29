@@ -1,4 +1,4 @@
-"""Calxeda: __init__.py """
+"""Calxeda: ipdiscover.py"""
 
 
 # Copyright (c) 2012, Calxeda Inc.
@@ -31,38 +31,29 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-
-import os
-import atexit
-import shutil
-import tempfile
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, run_command
 
 
-WORK_DIR = tempfile.mkdtemp(prefix="cxmanage_api-")
-atexit.register(lambda: shutil.rmtree(WORK_DIR, ignore_errors=True))
+def ipdiscover_command(args):
+    """discover server IP addresses"""
+    tftp = get_tftp(args)
+    nodes = get_nodes(args, tftp)
 
+    if not args.quiet:
+        print 'Getting server-side IP addresses...'
 
-def temp_file():
-    """
-    Create a temporary file that will be cleaned up at exit.
+    results, errors = run_command(args, nodes, 'get_server_ip', args.interface,
+            args.ipv6, args.server_user, args.server_password, args.aggressive)
 
-    :returns: File name of the temporary file created.
-    :rtype: string
+    if results:
+        node_strings = get_node_strings(args, results, justify=True)
+        print 'IP addresses (ECME, Server)'
+        for node in nodes:
+            if node in results:
+                print '%s: %s' % (node_strings[node], results[node])
+        print
 
-    """
-    file_, filename = tempfile.mkstemp(dir=WORK_DIR)
-    os.close(file_)
-    return filename
+    if not args.quiet and errors:
+        print 'Some errors occurred during the command.'
 
-def temp_dir():
-    """
-    Create a temporary directory that will be cleaned up at exit.
-
-    :returns: Path to the temporary directory created.
-    :rtype: string
-
-    """
-    return tempfile.mkdtemp(dir=WORK_DIR)
-
-
-# End of file:./__init__.py
+    return len(errors) > 0

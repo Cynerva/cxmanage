@@ -1,3 +1,6 @@
+"""Calxeda: ipmitool.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -27,3 +30,34 @@
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
+
+
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, run_command
+
+def ipmitool_command(args):
+    """run arbitrary ipmitool command"""
+    if args.lanplus:
+        ipmitool_args = ['-I', 'lanplus'] + args.ipmitool_args
+    else:
+        ipmitool_args = args.ipmitool_args
+
+    tftp = get_tftp(args)
+    nodes = get_nodes(args, tftp)
+
+    if not args.quiet:
+        print "Running IPMItool command..."
+    results, errors = run_command(args, nodes, "ipmitool_command",
+            ipmitool_args)
+
+    # Print results
+    node_strings = get_node_strings(args, results, justify=False)
+    for node in nodes:
+        if node in results and results[node] != "":
+            print "[ IPMItool output from %s ]" % node_strings[node]
+            print results[node]
+            print
+
+    if not args.quiet and errors:
+        print "Some errors occured during the command.\n"
+
+    return len(errors) > 0

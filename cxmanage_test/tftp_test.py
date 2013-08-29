@@ -1,3 +1,6 @@
+"""Calxeda: tftp_test.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -27,7 +30,11 @@
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
-"""Unit tests for the Internal and External Tftp classes."""
+
+
+#
+# Unit tests for the Internal and External Tftp classes.
+#
 
 
 import os
@@ -51,6 +58,7 @@ def _get_relative_host():
     except socket.error:
         raise
 
+# pylint: disable=R0904
 class InternalTftpTest(unittest.TestCase):
     """ Tests the functions of the InternalTftp class."""
 
@@ -79,7 +87,7 @@ class InternalTftpTest(unittest.TestCase):
         self.assertEqual(open(filename).read(), contents)
         os.remove(filename)
 
-    def test_get_address_with_relative_host(self):
+    def test_get_address_with_relhost(self):
         """Tests the get_address(relative_host) function with a relative_host
         specified.
         """
@@ -97,6 +105,7 @@ class InternalTftpTest(unittest.TestCase):
         sock.close()
 
 
+# pylint: disable=R0904
 class ExternalTftpTest(unittest.TestCase):
     """Tests the ExternalTftp class.
     ..note:

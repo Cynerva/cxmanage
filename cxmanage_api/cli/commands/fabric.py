@@ -1,3 +1,6 @@
+"""Calxeda: fabric.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -28,68 +31,53 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
-from cxmanage import COMPONENTS
+from cxmanage_api.cli import get_tftp, get_nodes, run_command
 
 
-def info_command(args):
-    """print info from a cluster or host"""
-    if args.info_type in [None, 'basic']:
-        return info_basic_command(args)
-    elif args.info_type == 'ubootenv':
-        return info_ubootenv_command(args)
-
-
-def info_basic_command(args):
-    """Print basic info"""
-    components = COMPONENTS
+def ipinfo_command(args):
+    """get ip info from a cluster or host"""
+    args.all_nodes = False
 
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Getting info..."
-    results, errors = run_command(args, nodes, "get_versions")
+        print "Getting IP addresses..."
 
-    # Print results
-    node_strings = get_node_strings(args, results, justify=False)
+    results, _ = run_command(args, nodes, "get_fabric_ipinfo")
+
     for node in nodes:
         if node in results:
-            result = results[node]
-            print "[ Info from %s ]" % node_strings[node]
-            print "Hardware version   : %s" % result.hardware_version
-            print "Firmware version   : %s" % result.firmware_version
-            for var, string in components:
-                if hasattr(result, var):
-                    version = getattr(result, var)
-                    print "%s: %s" % (string.ljust(19), version)
+            print 'IP info from %s' % node.ip_address
+            for node_id, node_address in results[node].iteritems():
+                print 'Node %i: %s' % (node_id, node_address)
             print
 
-    if not args.quiet and errors:
-        print "Some errors occured during the command.\n"
-
-    return len(errors) > 0
+    return 0
 
 
-def info_ubootenv_command(args):
+def macaddrs_command(args):
+    """get mac addresses from a cluster or host"""
+    args.all_nodes = False
+
     tftp = get_tftp(args)
     nodes = get_nodes(args, tftp)
 
     if not args.quiet:
-        print "Getting u-boot environment..."
-    results, errors = run_command(args, nodes, "get_ubootenv")
+        print "Getting MAC addresses..."
+    results, errors = run_command(args, nodes, "get_fabric_macaddrs")
 
-    # Print results
-    node_strings = get_node_strings(args, results, justify=False)
     for node in nodes:
         if node in results:
-            ubootenv = results[node]
-            print "[ U-Boot Environment from %s ]" % node_strings[node]
-            for variable in ubootenv.variables:
-                print "%s=%s" % (variable, ubootenv.variables[variable])
+            print "MAC addresses from %s" % node.ip_address
+            for node_id in results[node]:
+                for port in results[node][node_id]:
+                    for mac_address in results[node][node_id][port]:
+                        print "Node %i, Port %i: %s" % (node_id, port,
+                                mac_address)
             print
 
     if not args.quiet and errors:
         print "Some errors occured during the command.\n"
 
-    return len(errors) > 0
+    return len(errors) == 0

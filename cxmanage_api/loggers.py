@@ -117,6 +117,7 @@ class Logger(object):
 
         return '\n'.join(result)
 
+    # pylint: disable=R0201
     def write(self, message):
         """Writes a log message.
 

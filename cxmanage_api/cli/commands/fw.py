@@ -1,3 +1,5 @@
+"""Calxeda: fw.py """
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -31,13 +33,13 @@
 
 from pkg_resources import parse_version
 
-from cxmanage import get_tftp, get_nodes, get_node_strings, run_command, \
-        prompt_yes
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, \
+        run_command, prompt_yes
 
 from cxmanage_api.image import Image
 from cxmanage_api.firmware_package import FirmwarePackage
 
-
+# pylint: disable=R0912
 def fwupdate_command(args):
     """update firmware on a cluster or host"""
     def do_update():
@@ -46,7 +48,7 @@ def fwupdate_command(args):
             if not args.quiet:
                 print "Checking hosts..."
 
-            results, errors = run_command(args, nodes, "_check_firmware",
+            _, errors = run_command(args, nodes, "_check_firmware",
                     package, args.partition, args.priority)
             if errors:
                 print "ERROR: Firmware update aborted."
@@ -55,7 +57,7 @@ def fwupdate_command(args):
         if not args.quiet:
             print "Updating firmware..."
 
-        results, errors = run_command(args, nodes, "update_firmware", package,
+        _, errors = run_command(args, nodes, "update_firmware", package,
             args.partition, args.priority)
         if errors:
             print "ERROR: Firmware update failed."
@@ -79,7 +81,7 @@ def fwupdate_command(args):
                 print "ERROR: MC reset is unsafe on ECME version v%s" % version
                 print "Please power cycle the system and start a new fwupdate."
                 return True
-            
+
         if not args.quiet:
             print "Resetting nodes..."
 
@@ -104,16 +106,21 @@ def fwupdate_command(args):
                     args.skip_crc32, args.fw_version)
             package = FirmwarePackage()
             package.images.append(image)
-        except ValueError as e:
-            print "ERROR: %s" % e
+        except ValueError as err:
+            print "ERROR: %s" % err
             return True
 
     if not args.all_nodes:
         if args.force:
-            print 'WARNING: Updating firmware without --all-nodes is dangerous.'
+            print(
+                'WARNING: Updating firmware without --all-nodes' +
+                ' is dangerous.'
+            )
         else:
             if not prompt_yes(
-                    'WARNING: Updating firmware without --all-nodes is dangerous. Continue?'):
+                'WARNING: Updating firmware without ' +
+                '--all-nodes is dangerous. Continue?'
+                ):
                 return 1
 
     tftp = get_tftp(args)

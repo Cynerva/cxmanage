@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: skip-file
 #
 # Cxmanage Python API documentation build configuration file, created by
 # sphinx-quickstart on Fri Dec 07 16:31:44 2012.

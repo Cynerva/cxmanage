@@ -1,3 +1,6 @@
+"""Calxeda: __init__.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -29,8 +32,6 @@
 # DAMAGE.
 
 
-""" Various objects used by tests """
-
 import os
 import random
 import tempfile
@@ -39,17 +40,20 @@ from cxmanage_api.image import Image
 
 def random_file(size):
     """ Create a random file """
-    contents = "".join([chr(random.randint(0, 255)) for a in range(size)])
-    fd, filename = tempfile.mkstemp(prefix='cxmanage_test-')
-    with os.fdopen(fd, "w") as f:
-        f.write(contents)
+    contents = "".join([chr(random.randint(0, 255)) for _ in range(size)])
+    file_, filename = tempfile.mkstemp(prefix='cxmanage_test-')
+    with os.fdopen(file_, "w") as file_handle:
+        file_handle.write(contents)
+
     return filename
 
 class TestImage(Image):
+    """TestImage Class."""
     def verify(self):
         return True
 
-class TestSensor:
+# pylint: disable=R0903
+class TestSensor(object):
     """ Sensor result from bmc/target """
     def __init__(self, sensor_name, sensor_reading):
         self.sensor_name = sensor_name

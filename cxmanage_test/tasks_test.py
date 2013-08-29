@@ -1,3 +1,6 @@
+"""Calxeda: task_test.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -28,16 +31,21 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
+
 import unittest
 import time
 
 from cxmanage_api.tasks import TaskQueue
 
+
+# pylint: disable=R0904
 class TaskTest(unittest.TestCase):
+    """Test for the TaskQueue Class."""
+
     def test_task_queue(self):
         """ Test the task queue """
         task_queue = TaskQueue()
-        counters = [Counter() for x in xrange(128)]
+        counters = [Counter() for _ in xrange(128)]
         tasks = [task_queue.put(counters[i].add, i) for i in xrange(128)]
 
         for task in tasks:
@@ -61,6 +69,8 @@ class TaskTest(unittest.TestCase):
 
         self.assertGreaterEqual(finish - start, 2.0)
 
+
+# pylint: disable=R0903
 class Counter(object):
     """ Simple counter object for testing purposes """
     def __init__(self):

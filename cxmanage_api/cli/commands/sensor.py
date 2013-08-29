@@ -1,3 +1,6 @@
+"""Calxeda: sensor.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -28,9 +31,10 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
+
 from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
 
-
+# pylint: disable=R0914
 def sensor_command(args):
     """read sensor values from a cluster or host"""
     tftp = get_tftp(args)

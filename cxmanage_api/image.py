@@ -1,3 +1,6 @@
+"""Calxeda: image.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -38,7 +41,7 @@ from cxmanage_api.simg import valid_simg, get_simg_contents
 from cxmanage_api.cx_exceptions import InvalidImageError
 
 
-class Image:
+class Image(object):
     """An Image consists of: an image type, a filename, and SIMG header info.
 
     >>> from cxmanage_api.image import Image
@@ -62,6 +65,7 @@ class Image:
 
     """
 
+    # pylint: disable=R0913
     def __init__(self, filename, image_type, simg=None, daddr=None,
                   skip_crc32=False, version=None):
         """Default constructor for the Image class."""
@@ -114,8 +118,8 @@ class Image:
                     skip_crc32=self.skip_crc32, align=align,
                     version=self.version)
             filename = temp_file()
-            with open(filename, "wb") as f:
-                f.write(simg)
+            with open(filename, "wb") as file_:
+                file_.write(simg)
 
         # Make sure the simg was built correctly
         if (not valid_simg(open(filename, "rb").read())):

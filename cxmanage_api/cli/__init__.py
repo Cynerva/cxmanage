@@ -1,3 +1,6 @@
+"""Calxeda: __init__.py """
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -27,6 +30,7 @@
 # TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
+
 
 import sys
 import time
@@ -71,7 +75,7 @@ def get_tftp(args):
 
     return InternalTftp(verbose=args.verbose)
 
-
+# pylint: disable=R0912
 def get_nodes(args, tftp, verify_prompt=False):
     """Get nodes"""
     hosts = []
@@ -84,7 +88,7 @@ def get_nodes(args, tftp, verify_prompt=False):
 
     if args.all_nodes:
         if not args.quiet:
-            print "Getting IP addresses..."
+            print("Getting IP addresses...")
 
         results, errors = run_command(args, nodes, "get_fabric_ipinfo")
 
@@ -92,8 +96,6 @@ def get_nodes(args, tftp, verify_prompt=False):
         for node in nodes:
             if node in results:
                 for node_id, ip_address in sorted(results[node].iteritems()):
-                    # TODO: make this more efficient. We can use a set of IP
-                    # addresses instead of searching a list every time...
                     new_node = Node(ip_address=ip_address, username=args.user,
                             password=args.password, tftp=tftp,
                             ecme_tftp_port=args.ecme_tftp_port,
@@ -104,13 +106,13 @@ def get_nodes(args, tftp, verify_prompt=False):
 
         node_strings = get_node_strings(args, all_nodes, justify=False)
         if not args.quiet and all_nodes:
-            print "Discovered the following IP addresses:"
+            print("Discovered the following IP addresses:")
             for node in all_nodes:
                 print node_strings[node]
             print
 
         if errors:
-            print "ERROR: Failed to get IP addresses. Aborting.\n"
+            print("ERROR: Failed to get IP addresses. Aborting.\n")
             sys.exit(1)
 
         if args.nodes:
@@ -119,9 +121,12 @@ def get_nodes(args, tftp, verify_prompt=False):
                         % (len(all_nodes), args.nodes))
                 sys.exit(1)
         elif verify_prompt and not args.force:
-            print "NOTE: Please check node count! Ensure discovery of all nodes in the cluster."
-            print "Power cycle your system if the discovered node count does not equal nodes in"
-            print "your system.\n"
+            print(
+                "NOTE: Please check node count! Ensure discovery of all " +
+                "nodes in the cluster. Power cycle your system if the " +
+                "discovered node count does not equal nodes in" +
+                "your system.\n"
+            )
             if not prompt_yes("Discovered %i nodes. Continue?"
                     % len(all_nodes)):
                 sys.exit(1)
@@ -135,6 +140,7 @@ def get_node_strings(args, nodes, justify=False):
     """ Get string representations for the nodes. """
     # Use the private _node_id instead of node_id. Strange choice,
     # but we want to avoid accidentally polling the BMC.
+    # pylint: disable=W0212
     if args.ids and all(x._node_id != None for x in nodes):
         strings = ["Node %i (%s)" % (x._node_id, x.ip_address) for x in nodes]
     else:
@@ -147,7 +153,9 @@ def get_node_strings(args, nodes, justify=False):
     return dict(zip(nodes, strings))
 
 
+# pylint: disable=R0915
 def run_command(args, nodes, name, *method_args):
+    """Runs a command on nodes."""
     if args.threads != None:
         task_queue = TaskQueue(threads=args.threads, delay=args.command_delay)
     else:
@@ -182,11 +190,13 @@ def run_command(args, nodes, name, *method_args):
             elif task.status == "Failed":
                 errors[node] = task.error
             else:
-                errors[node] = KeyboardInterrupt("Aborted by keyboard interrupt")
+                errors[node] = KeyboardInterrupt(
+                    "Aborted by keyboard interrupt"
+                )
 
     if not args.quiet:
         _print_command_status(tasks, counter)
-        print "\n"
+        print("\n")
 
     # Handle errors
     should_retry = False
@@ -206,9 +216,9 @@ def run_command(args, nodes, name, *method_args):
         elif args.retry >= 1:
             should_retry = True
             if args.retry == 1:
-                print "Retrying command 1 more time..."
+                print("Retrying command 1 more time...")
             elif args.retry > 1:
-                print "Retrying command %i more times..." % args.retry
+                print("Retrying command %i more times..." % args.retry)
             args.retry -= 1
 
     if should_retry:
@@ -220,6 +230,7 @@ def run_command(args, nodes, name, *method_args):
 
 
 def prompt_yes(prompt):
+    """Prompts the user. """
     sys.stdout.write("%s (y/n) " % prompt)
     sys.stdout.flush()
     while True:
@@ -232,8 +243,11 @@ def prompt_yes(prompt):
             return False
 
 
-def parse_host_entry(entry, hostfiles=set()):
+def parse_host_entry(entry, hostfiles=None):
     """parse a host entry"""
+    if not(hostfiles):
+        hostfiles = set()
+
     try:
         return parse_hostfile_entry(entry, hostfiles)
     except ValueError:
@@ -243,8 +257,11 @@ def parse_host_entry(entry, hostfiles=set()):
             return [entry]
 
 
-def parse_hostfile_entry(entry, hostfiles=set()):
+def parse_hostfile_entry(entry, hostfiles=None):
     """parse a hostfile entry, returning a list of hosts"""
+    if not(hostfiles):
+        hostfiles = set()
+
     if entry.startswith('file='):
         filename = entry[5:]
     elif entry.startswith('hostfile='):
@@ -275,12 +292,13 @@ def parse_ip_range_entry(entry):
         start, end = entry.split('-')
 
         # Convert start address to int
-        start_bytes = map(int, start.split('.'))
+        start_bytes = [int(x) for x in start.split('.')]
+
         start_i = ((start_bytes[0] << 24) | (start_bytes[1] << 16)
                 | (start_bytes[2] << 8) | (start_bytes[3]))
 
         # Convert end address to int
-        end_bytes = map(int, end.split('.'))
+        end_bytes = [int(x) for x in end.split('.')]
         end_i = ((end_bytes[0] << 24) | (end_bytes[1] << 16)
                 | (end_bytes[2] << 8) | (end_bytes[3]))
 
@@ -300,17 +318,20 @@ def _print_errors(args, nodes, errors):
     """ Print errors if they occured """
     if errors:
         node_strings = get_node_strings(args, nodes, justify=True)
-        print "Command failed on these hosts"
+        print("Command failed on these hosts")
         for node in nodes:
             if node in errors:
-                print "%s: %s" % (node_strings[node], errors[node])
+                print("%s: %s" % (node_strings[node], errors[node]))
         print
 
         # Print a special message for TFTP errors
         if all(isinstance(x, TftpException) for x in errors.itervalues()):
-            print "There may be networking issues (when behind NAT) between the host (where"
-            print "cxmanage is running) and the Calxeda node when establishing a TFTP session."
-            print "Please refer to the documentation for more information.\n"
+            print(
+                "There may be networking issues (when behind NAT) between " +
+                "the host (where cxmanage is running) and the Calxeda node " +
+                "when establishing a TFTP session. Please refer to the " +
+                "documentation for more information.\n"
+            )
 
 
 def _print_command_status(tasks, counter):
@@ -331,7 +352,9 @@ COMPONENTS = [
     ("stage2_version", "Stage2boot version"),
     ("bootlog_version", "Bootlog version"),
     ("a9boot_version", "A9boot version"),
+    ("a15boot_version", "A15boot version"),
     ("uboot_version", "Uboot version"),
     ("ubootenv_version", "Ubootenv version"),
-    ("dtb_version", "DTB version")
+    ("dtb_version", "DTB version"),
 ]
+

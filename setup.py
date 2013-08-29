@@ -1,3 +1,6 @@
+"""Calxeda: setup.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -34,7 +37,12 @@ from setuptools import setup
 setup(
     name='cxmanage',
     version='0.9.0',
-    packages=['cxmanage', 'cxmanage.commands', 'cxmanage_api'],
+    packages=[
+        'cxmanage_api',
+        'cxmanage_api.cli',
+        'cxmanage_api.cli.commands',
+        'cxmanage_test'
+    ],
     scripts=['scripts/cxmanage', 'scripts/sol_tabs'],
     description='Calxeda Management Utility',
     # NOTE: As of right now, the pyipmi version requirement needs to be updated
@@ -44,6 +52,7 @@ setup(
                         'pexpect',
                         'pyipmi>=0.8.0',
                         'argparse',
+                        'unittest-xml-reporting<1.6.0'
     ],
     extras_require={
         'docs': ['sphinx', 'cloud_sptheme'],

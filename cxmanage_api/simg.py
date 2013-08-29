@@ -1,3 +1,6 @@
+"""Calxeda: simg.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -38,7 +41,8 @@ HEADER_LENGTH = 60
 MIN_HEADER_LENGTH = 28
 
 
-class SIMGHeader:
+# pylint: disable=R0913, R0903, R0902
+class SIMGHeader(object):
     """Container for an SIMG header.
 
     >>> from cxmanage_api.simg import SIMGHeader

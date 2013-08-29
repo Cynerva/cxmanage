@@ -1,3 +1,7 @@
+# pylint: disable=C0302
+"""Calxeda: fabric.py """
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -34,6 +38,7 @@ from cxmanage_api.node import Node as NODE
 from cxmanage_api.cx_exceptions import CommandFailedError
 
 
+# pylint: disable=R0902,R0903, R0904
 class Fabric(object):
     """ The Fabric class provides management of multiple nodes.
 
@@ -103,6 +108,7 @@ class Fabric(object):
 
             return function
 
+    # pylint: disable=R0913
     def __init__(self, ip_address, username="admin", password="admin",
                   tftp=None, ecme_tftp_port=5001, task_queue=None,
                   verbose=False, node=None):
@@ -237,16 +243,14 @@ class Fabric(object):
         """
         return self.primary_node.get_fabric_macaddrs()
 
-    def get_uplink_info(self):
+    def get_uplink_info(self, async=False):
         """Gets the fabric uplink info.
 
         >>> fabric.get_uplink_info()
-        {
-         0: {0: 0, 1: 0, 2: 0}
-         1: {0: 0, 1: 0, 2: 0}
-         2: {0: 0, 1: 0, 2: 0}
-         3: {0: 0, 1: 0, 2: 0}
-        }
+        {0: 'Node 0: eth0 0, eth1 0, mgmt 0',
+         1: 'Node 1: eth0 0, eth1 0, mgmt 0',
+         2: 'Node 2: eth0 0, eth1 0, mgmt 0',
+         3: 'Node 3: eth0 0, eth1 0, mgmt 0'}
 
         :param async: Flag that determines if the command result (dictionary)
                       is returned or a Task object (can get status, etc.).
@@ -256,7 +260,23 @@ class Fabric(object):
         :rtype: dictionary
 
         """
-        return self.primary_node.get_fabric_uplink_info()
+        return self._run_on_all_nodes(async, "get_uplink_info")
+
+    def get_uplink_speed(self, async=False):
+        """Gets the uplink speed of every node in the fabric.
+
+        >>> fabric.get_uplink_speed()
+        {0: 1, 1: 0, 2: 0, 3: 0}
+
+        :param async: Flag that determines if the command result (dictionary)
+                      is returned or a Task object (can get status, etc.).
+        :type async: boolean
+
+        :return: The uplink info for each node.
+        :rtype: dictionary
+
+        """
+        return self._run_on_all_nodes(async, "get_uplink_speed")
 
     def get_power(self, async=False):
         """Returns the power status for all nodes.
@@ -274,7 +294,7 @@ class Fabric(object):
         """
         return self._run_on_all_nodes(async, "get_power")
 
-    def set_power(self, mode, async=False):
+    def set_power(self, mode, async=False, ignore_existing_state=False):
         """Send an IPMI power command to all nodes.
 
         >>> # On ...
@@ -290,9 +310,13 @@ class Fabric(object):
         :param async: Flag that determines if the command result (dictionary)
                       is returned or a Command object (can get status, etc.).
         :type async: boolean
+        :param ignore_existing_state: Flag that allows the caller to only try
+                                      to turn on or off nodes that are not
+                                      turned on or off, respectively.
+        :type ignore_existing_state: boolean
 
         """
-        self._run_on_all_nodes(async, "set_power", mode)
+        self._run_on_all_nodes(async, "set_power", mode, ignore_existing_state)
 
     def get_power_policy(self, async=False):
         """Gets the power policy from all nodes.
@@ -585,7 +609,8 @@ class Fabric(object):
         }
 
         .. seealso::
-            `Node.get_versions() <node.html#cxmanage_api.node.Node.get_versions>`_
+            `Node.get_versions() \
+<node.html#cxmanage_api.node.Node.get_versions>`_
 
         :param async: Flag that determines if the command result (dictionary)
                       is returned or a Command object (can get status, etc.).
@@ -624,7 +649,8 @@ class Fabric(object):
         }
 
         .. seealso::
-            `Node.get_versions_dict() <node.html#cxmanage_api.node.Node.get_versions_dict>`_
+            `Node.get_versions_dict() \
+<node.html#cxmanage_api.node.Node.get_versions_dict>`_
 
         :param async: Flag that determines if the command result (dictionary)
                       is returned or a Task object (can get status, etc.).
@@ -683,6 +709,7 @@ class Fabric(object):
         """
         return self._run_on_all_nodes(async, "get_ubootenv")
 
+    # pylint: disable=R0913
     def get_server_ip(self, interface=None, ipv6=False, user="user1",
             password="1Password", aggressive=False, async=False):
         """Get the server IP address from all nodes. The nodes must be powered
@@ -813,7 +840,7 @@ class Fabric(object):
 
         :param nodeid: Node id from which the macaddr is to be remove
         :type nodeid: integer
-        :param iface: interface on the node from which the macaddr is to be removed
+        :param iface: interface on the node which the macaddr is to be removed
         :type iface: integer
         :param macaddr: mac address to be removed
         :type macaddr: string
@@ -863,6 +890,7 @@ class Fabric(object):
 
         :return: mac address mask
         :rtype: string
+
         """
         return self.primary_node.bmc.fabric_config_get_macaddr_mask()
 
@@ -975,7 +1003,7 @@ class Fabric(object):
          }}
         >>> #
         >>> # Output trimmed for brevity ...
-        >>> # The data shown for node 0 is the same type of data presented for each
+        >>> # The data shown for node 0 is the same type of data for each
         >>> # node in  the fabric.
         >>> #
 
@@ -1054,11 +1082,50 @@ class Fabric(object):
         """
         return self._run_on_all_nodes(async, "get_depth_chart")
 
-    def _run_on_all_nodes(self, async, name, *args):
+    def get_node_fru_version(self, async=False):
+        """Get each node's node FRU version.
+
+        >>> fabric.get_node_fru_version()
+        {0: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         1: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         2: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         3: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c'}
+
+        :param async: Flag that determines if the command result (dictionary)
+                      is returned or a Task object (can get status, etc.).
+        :type async: boolean
+
+        :returns: The node FRU versions for each node in the fabric
+        :rtype: dictionary
+
+        """
+        return self._run_on_all_nodes(async, "get_node_fru_version")
+
+    def get_slot_fru_version(self, async=False):
+        """Get each node's slot FRU version.
+
+        >>> fabric.get_slot_fru_version()
+        {0: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         1: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         2: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c',
+         3: 'bf7b471716113d5b9c47c6a5dd25f7a83f5c235c'}
+
+        :param async: Flag that determines if the command result (dictionary)
+                      is returned or a Task object (can get status, etc.).
+        :type async: boolean
+
+        :returns: The slot FRU versions for each node in the fabric
+        :rtype: dictionary
+
+        """
+        return self._run_on_all_nodes(async, "get_slot_fru_version")
+
+    def _run_on_all_nodes(self, async, name, *args, **kwargs):
         """Start a command on all nodes."""
         tasks = {}
         for node_id, node in self.nodes.iteritems():
-            tasks[node_id] = self.task_queue.put(getattr(node, name), *args)
+            tasks[node_id] = self.task_queue.put(getattr(node, name), *args,
+                                                 **kwargs)
 
         if async:
             return tasks

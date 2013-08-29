@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+"""Calxeda: ip_retriever.py"""
+
 
 # Copyright (c) 2012, Calxeda Inc.
 #
@@ -30,6 +31,7 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
+
 import sys
 import re
 import json
@@ -46,9 +48,10 @@ from pyipmi.server import Server
 from pyipmi.bmc import LanBMC
 
 
+# pylint: disable=R0902
 class IPRetriever(threading.Thread):
-    """The IPRetriever class takes an ECME address and when run will 
-       connect to the Linux Server from the ECME over SOL and use 
+    """The IPRetriever class takes an ECME address and when run will
+       connect to the Linux Server from the ECME over SOL and use
        ifconfig to determine the IP address.
     """
     verbosity = None
@@ -56,7 +59,7 @@ class IPRetriever(threading.Thread):
     retry = None
     timeout = None
     interface = None
-    
+
     ecme_ip = None
     ecme_user = None
     ecme_password = None
@@ -64,14 +67,14 @@ class IPRetriever(threading.Thread):
     server_ip = None
     server_user = None
     server_password = None
-    
+
     def __init__(self, ecme_ip, aggressive=False, verbosity=0, **kwargs):
         """Initializes the IPRetriever class. The IPRetriever needs the
            only the first node to know where to start.
         """
         super(IPRetriever, self).__init__()
         self.daemon = True
-        
+
         if hasattr(ecme_ip, 'ip_address'):
             self.ecme_ip = ecme_ip.ip_address
         else:
@@ -79,7 +82,7 @@ class IPRetriever(threading.Thread):
 
         self.aggressive = aggressive
         self.verbosity = verbosity
-        
+
         # Everything here is optional
         self.timeout = kwargs.get('timeout', 120)
         self.retry = kwargs.get('retry', 0)
@@ -96,20 +99,20 @@ class IPRetriever(threading.Thread):
             self._ip_pattern = kwargs['_ip_pattern']
 
         else:
-            self.set_interface(kwargs.get('interface', None), 
+            self.set_interface(kwargs.get('interface', None),
                                kwargs.get('ipv6', False))
 
         if 'bmc' in kwargs:
             self._bmc = kwargs['bmc']
         else:
-            self._bmc = make_bmc(LanBMC, verbose=(self.verbosity>1),
-                                 hostname=self.ecme_ip, 
+            self._bmc = make_bmc(LanBMC, verbose=(self.verbosity > 1),
+                                 hostname=self.ecme_ip,
                                  username=self.ecme_user,
                                  password=self.ecme_password)
 
         if 'config_path' in kwargs:
             self.read_config(kwargs['config_path'])
-            
+
 
 
     def set_interface(self, interface=None, ipv6=False):
@@ -120,11 +123,13 @@ class IPRetriever(threading.Thread):
         self.interface = interface
 
         if not ipv6:
-            self._ip_pattern = re.compile('\d+\.'*3 + '\d+')
+            self._ip_pattern = re.compile(r'\d+\.' * 3 + r'\d+')
             self._inet_pattern = re.compile('inet addr:(%s)' %
                                             self._ip_pattern.pattern)
         else:
-            self._ip_pattern = re.compile('[0-9a-fA-F:]*:'*2 + '[0-9a-fA-F:]+')
+            self._ip_pattern = re.compile(
+                '[0-9a-fA-F:]*:' * 2 + '[0-9a-fA-F:]+'
+            )
             self._inet_pattern = re.compile('inet6 addr: ?(%s)' %
                                             self._ip_pattern.pattern)
 
@@ -138,14 +143,14 @@ class IPRetriever(threading.Thread):
 
 
     def run(self):
-        """Attempts to finds the server IP address associated with the 
+        """Attempts to finds the server IP address associated with the
            ECME IP. If successful, server_ip will contain the IP address.
         """
         if self.server_ip is not None:
             self._log('Using stored IP %s' % self.server_ip)
             return
 
-        for attempt in range(self.retry + 1):
+        for _ in range(self.retry + 1):
             self.server_ip = self.sol_try_command(self.sol_find_ip)
 
             if self.server_ip is not None:
@@ -161,7 +166,7 @@ class IPRetriever(threading.Thread):
         """
         server = Server(self._bmc)
 
-        if cycle:    
+        if cycle:
             self._log('Powering server off')
             server.power_off()
             sleep(5)
@@ -202,15 +207,16 @@ class IPRetriever(threading.Thread):
             raise IPDiscoveryError('Could not find interface %s'
                     % self.interface)
 
-        else: # Failed to find interface. Returning None
+        else:  # Failed to find interface. Returning None
             return None
 
-        
+
+    # pylint: disable=R0912, R0915
     def sol_try_command(self, command):
         """Connects to the server over a SOL connection. Attempts
            to run the given command on the server without knowing
            the state of the server. The command must return None if
-           it fails. If aggresive is True, then the server may be 
+           it fails. If aggresive is True, then the server may be
            restarted or power cycled to try and reset the state.
         """
         server = Server(self._bmc)
@@ -304,7 +310,7 @@ class IPRetriever(threading.Thread):
             else:
                 # Assume where are at a prompt and able to run the command
                 value = command(session)
-                
+
                 if value is not None:
                     self._bmc.deactivate_payload()
                     return value

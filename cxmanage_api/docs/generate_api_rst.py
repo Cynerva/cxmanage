@@ -62,7 +62,7 @@ def get_source(source_dir):
     source = {API_NAME : {}}
     paths = glob.glob(os.path.join(source_dir, '*.py'))
     for path in paths:
-        f_path, f_ext = os.path.splitext(path)
+        f_path, _ = os.path.splitext(path)
         f_name = f_path.split(source_dir)[1]
         if (not f_name in BLACKLIST):
             if TITLES.has_key(f_name):

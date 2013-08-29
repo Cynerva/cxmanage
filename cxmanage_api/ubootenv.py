@@ -1,3 +1,5 @@
+"""Calxeda: ubootenv.py """
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -43,7 +45,7 @@ UBOOTENV_V2_VARIABLES = ["bootcmd0", "init_scsi", "bootcmd_scsi", "init_pxe",
         "bootcmd_pxe", "devnum"]
 
 
-class UbootEnv:
+class UbootEnv(object):
     """Represents a U-Boot Environment.
 
     >>> from cxmanage_api.ubootenv import UbootEnv
@@ -68,6 +70,7 @@ class UbootEnv:
                 part = line.partition("=")
                 self.variables[part[0]] = part[2]
 
+    # pylint: disable=R0912
     def set_boot_order(self, boot_args):
         """Sets the boot order specified in the uboot environment.
 
@@ -117,6 +120,7 @@ class UbootEnv:
                     commands.append("run bootcmd_sata")
                 elif arg.startswith("disk"):
                     try:
+                        # pylint: disable=W0141
                         dev, part = map(int, arg[4:].split(":"))
                         bootdevice = "%i:%i" % (dev, part)
                     except ValueError:
@@ -130,13 +134,15 @@ class UbootEnv:
                     commands.append("run init_scsi && run bootcmd_scsi")
                 elif arg.startswith("disk"):
                     try:
+                        # pylint: disable=W0141
                         dev, part = map(int, arg[4:].split(":"))
                         bootdevice = "%i:%i" % (dev, part)
                     except ValueError:
                         bootdevice = str(int(arg[4:]))
                     commands.append(
-                            "setenv devnum %s && run init_scsi && run bootcmd_scsi"
-                            % bootdevice)
+                        "setenv devnum %s && run init_scsi && run bootcmd_scsi"
+                        % bootdevice
+                    )
 
         if retry and reset:
             raise ValueError("retry and reset are mutually exclusive")
@@ -208,7 +214,7 @@ class UbootEnv:
         if not boot_args:
             boot_args = ["none"]
 
-        validate_boot_args(boot_args) # sanity check
+        validate_boot_args(boot_args)  # sanity check
         return boot_args
 
 
@@ -229,10 +235,6 @@ class UbootEnv:
         validate_pxe_interface(interface)
         if interface == self.get_pxe_interface():
             return
-
-        commands = []
-        retry = False
-        reset = False
 
         if interface == "eth0":
             self.variables["ethprime"] = "xgmac0"
@@ -303,6 +305,7 @@ def validate_boot_args(boot_args):
             continue
         elif arg.startswith("disk"):
             try:
+                # pylint: disable=W0141
                 map(int, arg[4:].split(":"))
             except ValueError:
                 try:

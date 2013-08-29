@@ -1,3 +1,6 @@
+"""Calxeda: image_test.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -39,6 +42,8 @@ from cxmanage_api.tftp import InternalTftp
 
 from cxmanage_test import random_file, TestImage
 
+
+# pylint: disable=R0904
 class ImageTest(unittest.TestCase):
     """ Tests involving cxmanage images
 
@@ -72,13 +77,14 @@ class ImageTest(unittest.TestCase):
         self.assertEqual(header.daddr, daddr)
         self.assertEqual(simg[header.imgoff:], contents)
 
-    def test_multiple_uploads(self):
+    @staticmethod
+    def test_multiple_uploads():
         """ Test to make sure FDs are being closed """
         # Create image
         filename = random_file(1024)
         image = TestImage(filename, "RAW")
 
-        for x in xrange(2048):
+        for _ in xrange(2048):
             image.render_to_simg(0, 0)
 
         os.remove(filename)

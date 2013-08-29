@@ -36,18 +36,20 @@ import pkg_resources
 import subprocess
 import sys
 
-from cxmanage.commands.power import power_command, power_status_command, \
-        power_policy_command, power_policy_status_command
-from cxmanage.commands.mc import mcreset_command
-from cxmanage.commands.fw import fwupdate_command, fwinfo_command
-from cxmanage.commands.sensor import sensor_command
-from cxmanage.commands.fabric import ipinfo_command, macaddrs_command
-from cxmanage.commands.config import config_reset_command, config_boot_command, \
-        config_pxe_command
-from cxmanage.commands.info import info_command
-from cxmanage.commands.ipmitool import ipmitool_command
-from cxmanage.commands.ipdiscover import ipdiscover_command
-from cxmanage.commands.tspackage import tspackage_command
+from cxmanage_api.cli.commands.power import power_command, \
+        power_status_command, power_policy_command, power_policy_status_command
+from cxmanage_api.cli.commands.mc import mcreset_command
+from cxmanage_api.cli.commands.fw import fwupdate_command, fwinfo_command
+from cxmanage_api.cli.commands.sensor import sensor_command
+from cxmanage_api.cli.commands.fabric import ipinfo_command, macaddrs_command
+from cxmanage_api.cli.commands.config import config_reset_command, \
+        config_boot_command, config_pxe_command
+from cxmanage_api.cli.commands.info import info_command
+from cxmanage_api.cli.commands.ipmitool import ipmitool_command
+from cxmanage_api.cli.commands.ipdiscover import ipdiscover_command
+from cxmanage_api.cli.commands.tspackage import tspackage_command
+from cxmanage_api.cli.commands.fru_version import node_fru_version_command, \
+    slot_fru_version_command
 
 
 PYIPMI_VERSION = '0.8.0'
@@ -292,9 +294,20 @@ def build_parser():
     parser.add_argument('hostname',
             help='nodes to operate on (see examples below)')
 
-    # tspackage command
-    tspackage = subparsers.add_parser('tspackage', help='Get all data from each node')
+    # tspackage command ("troubleshoot package")
+    tspackage = subparsers.add_parser('tspackage',
+            help='Save information about this node/fabric to a .tar')
     tspackage.set_defaults(func=tspackage_command)
+
+    # node_fru_version command
+    node_fru_version = subparsers.add_parser('node_fru_version',
+            help='Get the node FRU version')
+    node_fru_version.set_defaults(func=node_fru_version_command)
+
+    # slot_fru_version command
+    slot_fru_version = subparsers.add_parser('slot_fru_version',
+            help='Get the slot FRU version')
+    slot_fru_version.set_defaults(func=slot_fru_version_command)
 
     return parser
 

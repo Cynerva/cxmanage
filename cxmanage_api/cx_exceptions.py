@@ -1,3 +1,6 @@
+"""Calxeda: cx_exceptions.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -28,10 +31,20 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-"""Defines the custom exceptions used by the cxmanage_api project."""
 
+#
+# We expose these here so a user does not have to import from pyipmi or tftpy.
+#
+# pylint: disable=W0611
+#
 from pyipmi import IpmiError
+
 from tftpy.TftpShared import TftpException
+
+
+#
+# Defines the custom exceptions used by the cxmanage_api project.
+#
 
 
 class TimeoutError(Exception):
@@ -304,6 +317,7 @@ class CommandFailedError(Exception):
 
     def __init__(self, results, errors):
         """Default constructor for the CommandFailedError class."""
+        super(CommandFailedError, self).__init__()
         self.results = results
         self.errors = errors
 
@@ -363,5 +377,25 @@ class IPDiscoveryError(Exception):
         """String representation of this Exception class."""
         return self.msg
 
+class NoFRUVersionError(Exception):
+    """Raised when a node does not detect a FRU version.
+
+    >>> from cxmanage_api.cx_exceptions import NoFRUError
+    >>> raise NoFRUError('My custom exception text!')
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    cxmanage_api.cx_exceptions.NoFRUError: My custom exception text!
+
+    :param msg: Exceptions message and details to return to the user.
+    :type msg: string
+    :raised: When a node fails to detect a FRU version
+
+    """
+
+    def __init__(self, msg="No FRU version detected"):
+        super(NoFRUVersionError, self).__init__()
+        self.msg = msg
+    def __str__(self):
+        return self.msg
 
 # End of file: exceptions.py

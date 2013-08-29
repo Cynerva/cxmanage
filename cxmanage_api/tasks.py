@@ -1,3 +1,6 @@
+"""Calxeda: tasks.py"""
+
+
 # Copyright (c) 2012, Calxeda Inc.
 #
 # All rights reserved.
@@ -73,8 +76,9 @@ class Task(object):
         try:
             self.result = self._method(*self._args, **self._kwargs)
             self.status = "Completed"
-        except Exception as e:
-            self.error = e
+        # pylint: disable=W0703
+        except Exception as err:
+            self.error = err
             self.status = "Failed"
 
         self._finished.set()
@@ -167,8 +171,11 @@ class TaskWorker(Thread):
             while True:
                 sleep(self._delay)
                 task = self._task_queue.get()
+                # pylint: disable=W0212
                 task._run()
-        except:
+        # pylint: disable=W0703
+        except Exception:
+            # pylint: disable=W0212
             self._task_queue._remove_worker()
 
 DEFAULT_TASK_QUEUE = TaskQueue()
