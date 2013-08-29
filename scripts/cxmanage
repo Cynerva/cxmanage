@@ -329,7 +329,12 @@ def validate_args(args):
 
 def print_version():
     """ Print the current version of cxmanage """
-    version = pkg_resources.require('cxmanage')[0].version
+    if sys.platform == 'win32':
+        version = "Unknown"
+        with open('cxmanage_version.txt', "r") as f:
+            version = f.readline().strip()
+    else:
+        version = pkg_resources.require('cxmanage')[0].version
     print "cxmanage version %s" % version
 
 
