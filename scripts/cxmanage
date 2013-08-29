@@ -336,40 +336,41 @@ def print_version():
 def check_versions():
     """Check versions of dependencies"""
     # Check pyipmi version
-    try:
-        pkg_resources.require('pyipmi>=%s' % PYIPMI_VERSION)
-    except pkg_resources.DistributionNotFound:
-        print 'ERROR: cxmanage requires pyipmi version %s'\
-                % PYIPMI_VERSION
-        print 'No existing version was found.'
-        sys.exit(1)
-    except pkg_resources.VersionConflict:
-        version = pkg_resources.require('pyipmi')[0].version
-        print 'ERROR: cxmanage requires pyipmi version %s' % PYIPMI_VERSION
-        print 'Current pyipmi version is %s' % version
-        sys.exit(1)
-
-
-    # Check ipmitool version
-    if 'IPMITOOL_PATH' in os.environ:
-        args = [os.environ['IPMITOOL_PATH'], '-V']
-    else:
-        args = ['ipmitool', '-V']
-
-    try:
-        ipmitool_process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        ipmitool_version = ipmitool_process.communicate()[0].split()[2]
-        if pkg_resources.parse_version(ipmitool_version) < \
-                pkg_resources.parse_version(IPMITOOL_VERSION):
+    if sys.platform != 'win32':
+        try:
+            pkg_resources.require('pyipmi>=%s' % PYIPMI_VERSION)
+        except pkg_resources.DistributionNotFound:
+            print 'ERROR: cxmanage requires pyipmi version %s'\
+                    % PYIPMI_VERSION
+            print 'No existing version was found.'
+            sys.exit(1)
+        except pkg_resources.VersionConflict:
+            version = pkg_resources.require('pyipmi')[0].version
+            print 'ERROR: cxmanage requires pyipmi version %s' % PYIPMI_VERSION
+            print 'Current pyipmi version is %s' % version
+            sys.exit(1)
+    
+    
+        # Check ipmitool version
+        if 'IPMITOOL_PATH' in os.environ:
+            args = [os.environ['IPMITOOL_PATH'], '-V']
+        else:
+            args = ['ipmitool', '-V']
+    
+        try:
+            ipmitool_process = subprocess.Popen(args, stdout=subprocess.PIPE)
+            ipmitool_version = ipmitool_process.communicate()[0].split()[2]
+            if pkg_resources.parse_version(ipmitool_version) < \
+                    pkg_resources.parse_version(IPMITOOL_VERSION):
+                print 'ERROR: cxmanage requires IPMItool %s or later' \
+                        % IPMITOOL_VERSION
+                print 'Current IPMItool version is %s' % ipmitool_version
+                sys.exit(1)
+        except OSError:
             print 'ERROR: cxmanage requires IPMItool %s or later' \
                     % IPMITOOL_VERSION
-            print 'Current IPMItool version is %s' % ipmitool_version
+            print 'No existing version was found.'
             sys.exit(1)
-    except OSError:
-        print 'ERROR: cxmanage requires IPMItool %s or later' \
-                % IPMITOOL_VERSION
-        print 'No existing version was found.'
-        sys.exit(1)
 
 
 def main():
