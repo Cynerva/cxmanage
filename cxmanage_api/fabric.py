@@ -156,7 +156,7 @@ class Fabric(object):
 
         """
         if (not self._tftp):
-            self._tftp = InternalTftp()
+            self._tftp = InternalTftp.default()
 
         return self._tftp
 

@@ -46,7 +46,7 @@ import shutil
 import tarfile
 import tempfile
 
-from cxmanage import get_tftp, get_nodes, run_command, COMPONENTS
+from cxmanage_api.cli import get_tftp, get_nodes, run_command, COMPONENTS
 
 
 def tspackage_command(args):

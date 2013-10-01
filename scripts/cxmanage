@@ -50,6 +50,7 @@ from cxmanage_api.cli.commands.ipdiscover import ipdiscover_command
 from cxmanage_api.cli.commands.tspackage import tspackage_command
 from cxmanage_api.cli.commands.fru_version import node_fru_version_command, \
     slot_fru_version_command
+from cxmanage_api.cli.commands.eeprom import eepromupdate_command
 
 
 PYIPMI_VERSION = '0.8.0'
@@ -86,6 +87,10 @@ FWUPDATE_IMAGE_TYPES = ['PACKAGE'] + sorted([
     'DIAG_ELF',
 ])
 
+EEPROMUPDATE_EPILOG = """examples:
+    cxmanage -a eepromupdate slot tn_storage.single_slot_v3.0.0.img 192.168.1.1
+    cxmanage -a eepromupdate node dual_uplink_node_0.img \
+dual_uplink_node_1.img dual_node_0.img dual_node_0.img 192.168.1.1"""
 
 
 def build_parser():
@@ -95,7 +100,7 @@ def build_parser():
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=PARSER_EPILOG)
 
-    #global arguments
+    # global arguments
     parser.add_argument('-V', '--version', action='store_true',
             help='Show version information')
     parser.add_argument('-u', '--user', default='admin',
@@ -134,7 +139,7 @@ def build_parser():
 
     subparsers = parser.add_subparsers()
 
-    #power command
+    # power command
     power = subparsers.add_parser('power',
         help='control server power')
     power_subs = power.add_subparsers()
@@ -172,26 +177,26 @@ def build_parser():
             'status', help='get the current power policy')
     power_policy_status.set_defaults(func=power_policy_status_command)
 
-    #mcreset command
+    # mcreset command
     mcreset = subparsers.add_parser('mcreset',
             help='reset the management controller')
     mcreset.set_defaults(func=mcreset_command)
 
-    #fwupdate command
+    # fwupdate command
     fwupdate = subparsers.add_parser('fwupdate', help='update firmware',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=FWUPDATE_EPILOG)
     fwupdate.add_argument('image_type', metavar='IMAGE_TYPE',
             help='image type to use (%s)' % ", ".join(FWUPDATE_IMAGE_TYPES),
             type=lambda string: string.upper(),
-            choices = FWUPDATE_IMAGE_TYPES)
+            choices=FWUPDATE_IMAGE_TYPES)
     fwupdate.add_argument('filename', help='path to file to upload')
     fwupdate.add_argument('--full', action='store_true', default=False,
             help='Update primary AND backup partitions (will reset MC)')
     fwupdate.add_argument('--partition',
             help='Specify partition to update', default='INACTIVE',
             type=lambda string: string.upper(),
-            choices = list([
+            choices=list([
                 'FIRST',
                 'SECOND',
                 'BOTH',
@@ -219,27 +224,42 @@ def build_parser():
             help='Version for SIMG header', default=None)
     fwupdate.set_defaults(func=fwupdate_command)
 
-    #fwinfo command
+    # eepromupdate command
+    eepromupdate = subparsers.add_parser('eepromupdate', help='update EEPROM',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=EEPROMUPDATE_EPILOG
+    )
+    eepromupdate.add_argument('eeprom_location',
+        choices=['slot', 'node'],
+        help='EEPROM location'
+    )
+    eepromupdate.add_argument('images',
+        nargs='+',
+        help='path to file(s) to upload'
+    )
+    eepromupdate.set_defaults(func=eepromupdate_command)
+
+    # fwinfo command
     fwinfo = subparsers.add_parser('fwinfo', help='get FW info')
     fwinfo.set_defaults(func=fwinfo_command)
 
-    #sensor command
+    # sensor command
     sensor = subparsers.add_parser('sensor',
             help='read sensor value')
     sensor.add_argument('sensor_name', help='Sensor name to read',
             nargs='?', default='')
     sensor.set_defaults(func=sensor_command)
 
-    #ipinfo command
+    # ipinfo command
     ipinfo = subparsers.add_parser('ipinfo', help='get IP info')
     ipinfo.set_defaults(func=ipinfo_command)
 
-    #macaddrs command
+    # macaddrs command
     macaddrs = subparsers.add_parser('macaddrs',
             help='get mac addresses')
     macaddrs.set_defaults(func=macaddrs_command)
 
-    #config command
+    # config command
     config = subparsers.add_parser('config', help='configure hosts')
     config_subs = config.add_subparsers()
 
@@ -258,14 +278,14 @@ def build_parser():
     pxe.add_argument('interface', help='pxe interface to use')
     pxe.set_defaults(func=config_pxe_command)
 
-    #info command
+    # info command
     info = subparsers.add_parser('info', help='get host info')
     info.add_argument('info_type', nargs='?',
             type=lambda string: string.lower(),
             choices=['basic', 'ubootenv'])
     info.set_defaults(func=info_command)
 
-    #ipmitool command
+    # ipmitool command
     ipmitool = subparsers.add_parser('ipmitool',
             help='run an arbitrary ipmitool command')
     ipmitool.add_argument('-l', '--lanplus',
@@ -275,7 +295,7 @@ def build_parser():
             help='ipmitool arguments')
     ipmitool.set_defaults(func=ipmitool_command)
 
-    #ipdiscover command
+    # ipdiscover command
     ipdiscover = subparsers.add_parser('ipdiscover',
             help='discover server-side IP addresses')
     ipdiscover.add_argument('-A', '--aggressive', action='store_true',

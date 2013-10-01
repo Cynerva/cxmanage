@@ -31,7 +31,7 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 
-from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, run_command
 
 
 def power_command(args):

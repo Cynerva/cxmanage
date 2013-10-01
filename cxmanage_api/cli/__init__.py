@@ -124,7 +124,7 @@ def get_nodes(args, tftp, verify_prompt=False):
             print(
                 "NOTE: Please check node count! Ensure discovery of all " +
                 "nodes in the cluster. Power cycle your system if the " +
-                "discovered node count does not equal nodes in" +
+                "discovered node count does not equal nodes in " +
                 "your system.\n"
             )
             if not prompt_yes("Discovered %i nodes. Continue?"

@@ -52,7 +52,8 @@ from cxmanage_api.ip_retriever import IPRetriever as IPRETRIEVER
 from cxmanage_api.cx_exceptions import TimeoutError, NoSensorError, \
         SocmanVersionError, FirmwareConfigError, PriorityIncrementError, \
         NoPartitionError, TransferFailure, ImageSizeError, \
-        PartitionInUseError, UbootenvError, NoFRUVersionError
+        PartitionInUseError, UbootenvError, NoFRUVersionError, \
+        EEPROMUpdateError
 
 
 # pylint: disable=R0902, R0904
@@ -87,7 +88,7 @@ class Node(object):
                   image=None, ubootenv=None, ipretriever=None):
         """Default constructor for the Node class."""
         if (not tftp):
-            tftp = InternalTftp()
+            tftp = InternalTftp.default()
 
         # Dependency Integration
         if (not bmc):
@@ -838,6 +839,80 @@ communication.
         )
 
         print("\nLog saved to " + new_filepath)
+
+    def update_node_eeprom(self, image):
+        """Updates the node EEPROM
+
+        .. note::
+            A power cycle is required for the update to take effect
+
+        >>> node.update_node_eeprom('builds/dual_node_0_v3.0.0.img')
+
+        :param image: The location of an EEPROM image
+        :type image: string
+
+        :raises EEPROMUpdateError: When an error is encountered while \
+updating the EEPROM
+
+        """
+        # Does the image exist?
+        if(not os.path.exists(image)):
+            raise EEPROMUpdateError(
+                '%s does not exist' % image
+            )
+        node_hw_ver = self.get_versions().hardware_version
+        # Is this configuration valid for EEPROM updates?
+        if('Dual Node' not in node_hw_ver):
+            raise EEPROMUpdateError(
+                'eepromupdate is only valid on TerraNova systems'
+            )
+        # Is this image valid?
+        if('Uplink' in node_hw_ver):
+            image_prefix = 'dual_uplink_node_%s' % (self.node_id % 4)
+        else:
+            image_prefix = 'dual_node_%s' % (self.node_id % 4)
+        if(image_prefix not in image):
+            raise EEPROMUpdateError(
+                '%s is not a valid node EEPROM image for this node' % image
+            )
+        # Perform the upgrade
+        ipmi_command = 'fru write 81 %s' % image
+        self.ipmitool_command(ipmi_command.split(' '))
+
+    def update_slot_eeprom(self, image):
+        """Updates the slot EEPROM
+
+        .. note::
+            A power cycle is required for the update to take effect
+
+        >>> node.update_slot_eeprom('builds/tn_storage.single_slot_v3.0.0.img')
+
+        :param image: The location of an EEPROM image
+        :type image: string
+
+        :raises EEPROMUpdateError: When an error is encountered while \
+updating the EEPROM
+
+        """
+        # Does the image exist?
+        if(not os.path.exists(image)):
+            raise EEPROMUpdateError(
+                '%s does not exist' % image
+            )
+        node_hw_ver = self.get_versions().hardware_version
+        # Is this configuration valid for EEPROM updates?
+        if('Dual Node' not in node_hw_ver):
+            raise EEPROMUpdateError(
+                'eepromupdate is only valid on TerraNova systems'
+            )
+        # Is this image valid?
+        if('tn_storage.single_slot' not in image):
+            raise EEPROMUpdateError(
+                '%s is an invalid image for slot EEPROM' % image
+            )
+        # Perform the upgrade
+        ipmi_command = 'fru write 82 %s' % image
+        self.ipmitool_command(ipmi_command.split(' '))
 
     def config_reset(self):
         """Resets configuration to factory defaults.
@@ -1783,7 +1858,7 @@ obtained.
                             "Unable to increment SIMG priority, too high")
         return priority
 
-    def _read_fru(self, fru_number, offset=0, bytes_to_read= -1):
+    def _read_fru(self, fru_number, offset=0, bytes_to_read=-1):
         """Read from node's fru starting at offset.
         This is equivalent to the ipmitool fru read command.
 

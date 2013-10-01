@@ -46,6 +46,30 @@ from tftpy.TftpShared import TftpException
 # Defines the custom exceptions used by the cxmanage_api project.
 #
 
+class EEPROMUpdateError(Exception):
+    """Raised when an error is encountered while updating the EEPROM
+
+    >>> from cxmanage_api.cx_exceptions import TimeoutError
+    >>> raise TimeoutError('My custom exception text!')
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    cxmanage_api.cx_exceptions.TimeoutError: My custom exception text!
+
+    :param msg: Exceptions message and details to return to the user.
+    :type msg: string
+    :raised: When an error is encountered while updating the EEPROM
+
+    """
+
+    def __init__(self, msg):
+        """Default constructor for the EEPROMUpdateError class."""
+        super(EEPROMUpdateError, self).__init__()
+        self.msg = msg
+
+    def __str__(self):
+        """String representation of this Exception class."""
+        return self.msg
+
 
 class TimeoutError(Exception):
     """Raised when a timeout has been reached.

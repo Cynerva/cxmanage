@@ -37,6 +37,7 @@ import socket
 import logging
 import traceback
 
+from datetime import datetime, timedelta
 from tftpy import TftpClient, TftpServer, setLogLevel
 from threading import Thread
 from cxmanage_api import temp_dir
@@ -61,6 +62,14 @@ class InternalTftp(Thread):
     :type verbose: boolean
 
     """
+    _default = None
+
+    @staticmethod
+    def default():
+        """ Return the default InternalTftp server """
+        if InternalTftp._default == None:
+            InternalTftp._default = InternalTftp()
+        return InternalTftp._default
 
     def __init__(self, ip_address=None, port=0, verbose=False):
         super(InternalTftp, self).__init__()
@@ -74,10 +83,18 @@ class InternalTftp(Thread):
         self.port = port
         self.start()
 
-        # Get the port we actually hosted on (this covers the port=0 case)
-        while not self.server.sock:
-            pass
-        self.port = self.server.sock.getsockname()[1]
+        # Get the port we actually hosted on
+        if port == 0:
+            deadline = datetime.now() + timedelta(seconds=10)
+            while datetime.now() < deadline:
+                try:
+                    self.port = self.server.sock.getsockname()[1]
+                    break
+                except (AttributeError, socket.error):
+                    pass
+            else:
+                # don't catch the error on our last attempt
+                self.port = self.server.sock.getsockname()[1]
 
     def run(self):
         """ Run the server. Listens indefinitely. """

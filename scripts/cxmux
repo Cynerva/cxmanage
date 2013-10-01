@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import cxmanage_api.fabric
+from optparse import OptionParser
+
+def main():
+    parser = OptionParser("usage: %prog [options] COMMAND ecmeIP", conflict_handler="resolve")
+    parser.add_option("-s", "--ssh",
+                              action="store_const", const=True, dest="ssh", default=False,
+                              help="Use the SPU IPs rather than ECME IPs")
+    parser.add_option("-n", "--nosync",
+                              action="store_const", const=False, dest="sync", default=True,
+                              help="Do not syncronize input across terminals")
+    parser.disable_interspersed_args()
+    (options, args) = parser.parse_args()
+    if len(args) == 0:
+        parser.print_help()
+        return -1
+    elif len(args) < 2:
+        parser.error("Need to specify COMMAND and ecmeIP")
+
+    command = " ".join(args[:-1])
+    ecmeip = args[-1]
+    name = '%s@%s' % (args[0], ecmeip)
+    fabric = cxmanage_api.fabric.Fabric(ecmeip)
+    ips = [node.ip_address for node in fabric.nodes.values()]
+    if options.ssh:
+        ips = fabric.get_server_ip().values()
+
+    for i, ip in enumerate(ips):
+        if i == 0:
+            os.system('tmux new-window -n "%s"' % name)
+            os.system('tmux send-keys -l "%s %s"' % (command, ip))
+            os.system('tmux send-keys Enter')
+            continue
+        
+        os.system('tmux split-window -h')
+        os.system('tmux send-keys -l "%s %s"' % (command, ip))
+        os.system('tmux send-keys Enter')
+        os.system('tmux select-layout -t "%s" even-horizontal >/dev/null' % name)
+
+    os.system('tmux select-layout -t "%s" tiled >/dev/null' % name)
+    if options.sync:
+        os.system('tmux set-window-option -t "%s" synchronize-panes on >/dev/null' % name)
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())

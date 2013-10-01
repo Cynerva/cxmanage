@@ -32,7 +32,7 @@
 # DAMAGE.
 
 
-from cxmanage import get_tftp, get_nodes, get_node_strings, run_command
+from cxmanage_api.cli import get_tftp, get_nodes, get_node_strings, run_command
 
 # pylint: disable=R0914
 def sensor_command(args):
